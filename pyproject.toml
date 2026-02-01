@@ -1,5 +1,5 @@
 [project]
-name = "nixtools"
+name = "nyx"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
@@ -13,7 +13,7 @@ dependencies = [
 ]
 
 [project.scripts]
-nixtools = "nixtools:main"
+nyx = "nyx:main"
 
 [build-system]
 requires = ["uv_build>=0.9.27,<0.10.0"]

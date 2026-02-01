@@ -1,4 +1,4 @@
 #!/usr/bin/env zsh
 set -eu -o pipefail
 
-uv run nixtools $@
+uv run nyx $@

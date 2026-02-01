@@ -1,5 +1,5 @@
 {
-  description = "TODO";
+  description = "nixtools";
 
   inputs = {
     nixpkgs.url = "github:dkuettel/nixpkgs/stable";
@@ -38,7 +38,7 @@
     flake-utils.lib.eachDefaultSystem (
       system:
       let
-        name = "TODO";
+        name = "nixtools";
 
         pkgs = import nixpkgs {
           inherit system;
@@ -132,7 +132,7 @@
         inherit (pkgs.callPackages pyproject-nix.build.util { }) mkApplication;
         app = mkApplication {
           venv = venv;
-          package = modules.TODO;
+          package = modules.nixtools;
         };
         # TODO this could help, but Im not sure its the best way to do it
         # wrappedApp = pkgs.writeScriptBin "TODO" ''
@@ -152,8 +152,7 @@
         packages.default = package;
         devShells.default = pkgs.mkShellNoCC {
           packages = [ devEnv ];
-          # TODO opengl is not always needed
-          LD_LIBRARY_PATH = "/run/opengl-driver/lib/:${pkgs.lib.makeLibraryPath [ devLdLibs ]}";
+          LD_LIBRARY_PATH = "${pkgs.lib.makeLibraryPath [ devLdLibs ]}";
           shellHook = ''
             if [[ -v h ]]; then
               export PATH=$h/bin:$PATH;

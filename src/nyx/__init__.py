@@ -70,18 +70,31 @@ def get_flat_inputs(flake: Flake) -> dict[str, str]:
     }
 
 
-def get_forks(flake: Flake) -> dict[Original, dict[Locked, set[str]]]:
+type Forks = dict[Original, dict[Locked, set[str]]]
+
+
+# TODO more like get inverted? make classes?
+def get_forks(flake: Flake) -> Forks:
     """maps originals to differently locked qualified entries"""
     flat = get_flat_inputs(flake)
     forks: dict[Original, dict[Locked, set[str]]] = dict()
     for name, target in flat.items():
         # TODO can original really be None?
-        original = flake.nodes[flat[name]].original
-        locked = flake.nodes[flat[name]].locked
+        original = flake.nodes[target].original
         assert original is not None
+        locked = flake.nodes[target].locked
         assert locked is not None
         forks.setdefault(original, dict()).setdefault(locked, set()).add(name)
     return forks
+
+
+def print_forks(forks: Forks):
+    for original, locks in forks.items():
+        print(f"{original}")
+        for lock, names in locks.items():
+            print(f"  {lock}")
+            for name in names:
+                print(f"    {name}")
 
 
 def main():
@@ -90,4 +103,6 @@ def main():
     flake = msgspec.json.decode(path.read_text(), type=Flake)
     assert flake.version == 7, flake.version
     # rich.print(get_flat_inputs(flake))
-    rich.print(get_forks(flake))
+    # rich.print(get_forks(flake))
+    print_forks(get_forks(flake))
+    # TODO filter out problems

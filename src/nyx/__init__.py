@@ -32,6 +32,8 @@ class Flake(msgspec.Struct, frozen=True):
 
 
 def get_flat_inputs(flake: Flake) -> dict[str, str]:
+    """maps qualified names to the final flat input"""
+
     def follow(at: str, targets: list[str]) -> str:
         for target in targets:
             node = flake.nodes[at]

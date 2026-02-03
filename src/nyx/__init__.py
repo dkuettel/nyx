@@ -88,6 +88,10 @@ def get_forks(flake: Flake) -> Forks:
     return forks
 
 
+def get_problems(forks: Forks) -> Forks:
+    return {original: locks for (original, locks) in forks.items() if len(locks) > 1}
+
+
 def print_forks(forks: Forks):
     for original, locks in forks.items():
         print(f"{original}")
@@ -104,5 +108,7 @@ def main():
     assert flake.version == 7, flake.version
     # rich.print(get_flat_inputs(flake))
     # rich.print(get_forks(flake))
-    print_forks(get_forks(flake))
+    forks = get_forks(flake)
+    forks = get_problems(forks)
+    print_forks(forks)
     # TODO filter out problems

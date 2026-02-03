@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-import json
-from collections.abc import Iterable
 from pathlib import Path
 
 import msgspec
-import rich
 
 
 class Original(msgspec.Struct, frozen=True, kw_only=True):
@@ -32,7 +29,7 @@ class Flake(msgspec.Struct, frozen=True):
     root: str
 
 
-def get_flat_inputs(flake: Flake) -> dict[str, str]:
+def get_qualified_inputs(flake: Flake) -> dict[str, str]:
     """maps qualified names to the final flat input"""
 
     def follow(at: str, targets: list[str]) -> str:
@@ -70,29 +67,28 @@ def get_flat_inputs(flake: Flake) -> dict[str, str]:
     }
 
 
-type Forks = dict[Original, dict[Locked, set[str]]]
+type Inverted = dict[Original, dict[Locked, set[str]]]
 
 
-# TODO more like get inverted? make classes?
-def get_forks(flake: Flake) -> Forks:
+def get_inverted_mapping(flake: Flake) -> Inverted:
     """maps originals to differently locked qualified entries"""
-    flat = get_flat_inputs(flake)
-    forks: dict[Original, dict[Locked, set[str]]] = dict()
+    flat = get_qualified_inputs(flake)
+    inverted: dict[Original, dict[Locked, set[str]]] = dict()
     for name, target in flat.items():
         # TODO can original really be None?
         original = flake.nodes[target].original
         assert original is not None
         locked = flake.nodes[target].locked
         assert locked is not None
-        forks.setdefault(original, dict()).setdefault(locked, set()).add(name)
-    return forks
+        inverted.setdefault(original, dict()).setdefault(locked, set()).add(name)
+    return inverted
 
 
-def get_problems(forks: Forks) -> Forks:
-    return {original: locks for (original, locks) in forks.items() if len(locks) > 1}
+def get_forks(inverted: Inverted) -> Inverted:
+    return {original: locks for (original, locks) in inverted.items() if len(locks) > 1}
 
 
-def print_forks(forks: Forks):
+def print_forks(forks: Inverted):
     for original, locks in forks.items():
         print(f"{original}")
         for lock, names in locks.items():
@@ -108,7 +104,7 @@ def main():
     assert flake.version == 7, flake.version
     # rich.print(get_flat_inputs(flake))
     # rich.print(get_forks(flake))
-    forks = get_forks(flake)
-    forks = get_problems(forks)
+    forks = get_inverted_mapping(flake)
+    forks = get_forks(forks)
     print_forks(forks)
     # TODO filter out problems

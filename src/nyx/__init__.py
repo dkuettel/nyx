@@ -67,37 +67,6 @@ def get_flat_inputs(flake: Flake) -> dict[str, str]:
     }
 
 
-# TODO hmm not sure if that format is as I thought
-# it might be the follow path, but why is this useful in the lock?
-# it has already been flattened anyway, or in a way, a single str is just [str]
-# because ... ah wait, following from root vs entry? not clear, damn
-# ok str is just flat, list is thru root it seems
-# a lot of jumping
-def qualified_uses(flake: Flake, name: str) -> list[str]:
-    def get_inputs_using(name: str) -> Iterable[tuple[str, str, str]]:
-        for name, node in flake.nodes.items():
-            if node.inputs is not None:
-                for input, targets in node.inputs.items():
-                    match targets:
-                        case str():
-                            targets = [targets]
-                        case _:
-                            pass
-                    for target in targets:
-                        if target == name:
-                            yield (name, input, target)
-
-    uses = list(get_inputs_using(name))
-    if len(uses) == 0:
-        return [name]
-
-    return [
-        f"{prev}/{name}/{input}@{target}"
-        for (name, input, target) in uses
-        for prev in qualified_uses(flake, name)
-    ]
-
-
 def main():
     # path = Path("~/config/flake.lock").expanduser()
     path = Path("./flake.lock").expanduser()

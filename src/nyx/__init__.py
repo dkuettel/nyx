@@ -10,7 +10,8 @@ import rich
 
 class Original(msgspec.Struct, frozen=True, kw_only=True):
     owner: str
-    rev: str | None = None
+    # TODO correct? and also, this could hide things that might be forks?
+    ref: str | None = None
     repo: str
     type: str
 
@@ -69,34 +70,24 @@ def get_flat_inputs(flake: Flake) -> dict[str, str]:
     }
 
 
+def get_forks(flake: Flake) -> dict[Original, dict[Locked, set[str]]]:
+    """maps originals to differently locked qualified entries"""
+    flat = get_flat_inputs(flake)
+    forks: dict[Original, dict[Locked, set[str]]] = dict()
+    for name, target in flat.items():
+        # TODO can original really be None?
+        original = flake.nodes[flat[name]].original
+        locked = flake.nodes[flat[name]].locked
+        assert original is not None
+        assert locked is not None
+        forks.setdefault(original, dict()).setdefault(locked, set()).add(name)
+    return forks
+
+
 def main():
-    # path = Path("~/config/flake.lock").expanduser()
-    path = Path("./flake.lock").expanduser()
+    path = Path("~/config/flake.lock").expanduser()
+    # path = Path("./flake.lock").expanduser()
     flake = msgspec.json.decode(path.read_text(), type=Flake)
     assert flake.version == 7, flake.version
-    # rich.print(locks)
-    # rich.print(locks.keys())
-    # rich.print(locks["nodes"].keys())
-    # rich.print(flake)
-
-    names: dict[Locked | None, set[str]] = dict()
-    locks: dict[Original, set[Locked | None]] = dict()
-    for name, node in flake.nodes.items():
-        if node.original is not None:
-            names.setdefault(node.locked, set()).add(name)
-            locks.setdefault(node.original, set()).add(node.locked)
-    # rich.print(names)
-    # rich.print(nodes)
-
-    ambi = {original: alocks for (original, alocks) in locks.items() if len(alocks) > 1}
-    # rich.print(ambi)
-
-    for original, alocks in ambi.items():
-        print()
-        print(f"{original}:")
-        for alock in alocks:
-            print(f"  - {alock}")
-            qus = {qu for name in names[alock] for qu in qualified_uses(flake, name)}
-            print(f"    - {qus}")
-
-    rich.print(get_flat_inputs(flake))
+    # rich.print(get_flat_inputs(flake))
+    rich.print(get_forks(flake))

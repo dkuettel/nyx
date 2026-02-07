@@ -72,7 +72,7 @@ class Locked(msgspec.Struct, frozen=True, kw_only=True):
 class Node(msgspec.Struct, frozen=True, kw_only=True):
     original: Original | None = None
     locked: Locked | None = None
-    inputs: None | dict[str, str | list[str]] = None
+    inputs: None | dict[str, str | tuple[str, ...]] = None
 
 
 class Flake(msgspec.Struct, frozen=True, kw_only=True):
@@ -84,14 +84,14 @@ class Flake(msgspec.Struct, frozen=True, kw_only=True):
 def get_qualified_inputs(flake: Flake) -> dict[Qname, str]:
     """maps qualified names to the final flat input"""
 
-    def follow(at: str, targets: list[str]) -> str:
+    def follow(at: str, targets: tuple[str, ...]) -> str:
         for target in targets:
             node = flake.nodes[at]
             assert node.inputs is not None
             match node.inputs[target]:
                 case str(at):
                     pass
-                case list(ats):
+                case tuple(ats):
                     at = follow(flake.root, ats)
         return at
 
@@ -104,7 +104,7 @@ def get_qualified_inputs(flake: Flake) -> dict[Qname, str]:
             match target_spec:
                 case str(target):
                     pass
-                case list():
+                case tuple():
                     target = follow(flake.root, target_spec)
             flat[qname] = target
             flat.update(

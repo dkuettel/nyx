@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import msgspec
+import typer
 
 
 class Original(msgspec.Struct, frozen=True, kw_only=True):
@@ -97,14 +98,25 @@ def print_forks(forks: Inverted):
                 print(f"    {name}")
 
 
-def main():
-    path = Path("~/config/flake.lock").expanduser()
-    # path = Path("./flake.lock").expanduser()
+app = typer.Typer(
+    no_args_is_help=True,
+    rich_markup_mode=None,
+    pretty_exceptions_enable=False,
+)
+
+
+@app.command("invert")
+def app_invert(path: Path = Path("./flake.lock")):
     flake = msgspec.json.decode(path.read_text(), type=Flake)
     assert flake.version == 7, flake.version
-    # rich.print(get_flat_inputs(flake))
-    # rich.print(get_forks(flake))
+    forks = get_inverted_mapping(flake)
+    print_forks(forks)
+
+
+@app.command("lint")
+def app_lint(path: Path = Path("./flake.lock")):
+    flake = msgspec.json.decode(path.read_text(), type=Flake)
+    assert flake.version == 7, flake.version
     forks = get_inverted_mapping(flake)
     forks = get_forks(forks)
     print_forks(forks)
-    # TODO filter out problems

@@ -1,4 +1,4 @@
 #!/usr/bin/env zsh
 set -eu -o pipefail
 
-uv run nyx $@
+uv --project ${0:a:h:h} run nyx $@

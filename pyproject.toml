@@ -3,18 +3,16 @@ name = "nyx"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-authors = [
-    { name = "Daniel Kuettel", email = "dkuettel@gmail.com" }
-]
+authors = [{ name = "Daniel Kuettel", email = "dkuettel@gmail.com" }]
 requires-python = ">=3.14"
-dependencies = [
-    "msgspec>=0.20.0",
-    "rich>=14.3.2",
-]
+dependencies = ["msgspec>=0.20.0", "rich>=14.3.2", "typer>=0.21.1"]
 
 [project.scripts]
-nyx = "nyx:main"
+nyx = "nyx:app"
 
 [build-system]
 requires = ["uv_build>=0.9.27,<0.10.0"]
 build-backend = "uv_build"
+
+[tool.pyright]
+reportCallInDefaultInitializer = false

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Literal
 
 import msgspec
 import typer
@@ -11,11 +12,24 @@ class Original(msgspec.Struct, frozen=True, kw_only=True):
     # TODO correct? and also, this could hide things that might be forks?
     ref: str | None = None
     repo: str
-    type: str
+    type: Literal["github"]
+
+    def as_ref(self) -> str:
+        if self.ref is None:
+            return f"github:{self.owner}/{self.repo}"
+        else:
+            return f"github:{self.owner}/{self.repo}/{self.ref}"
 
 
 class Locked(msgspec.Struct, frozen=True):
     narHash: str
+    type: Literal["github"]
+    owner: str
+    repo: str
+    rev: str
+
+    def as_rev(self) -> str:
+        return self.rev
 
 
 class Node(msgspec.Struct, frozen=True, kw_only=True):
@@ -91,11 +105,11 @@ def get_forks(inverted: Inverted) -> Inverted:
 
 def print_forks(forks: Inverted):
     for original, locks in forks.items():
-        print(f"{original}")
+        print(f"{original.as_ref()}")
         for lock, names in locks.items():
-            print(f"  {lock}")
+            print(f"    {lock.as_rev()}")
             for name in names:
-                print(f"    {name}")
+                print(f"        {name}")
 
 
 app = typer.Typer(

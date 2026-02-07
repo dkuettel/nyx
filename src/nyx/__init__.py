@@ -1,10 +1,33 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal, override
 
 import msgspec
 import typer
+
+
+@dataclass(frozen=True)
+class Qname:
+    """fully qualified name"""
+
+    parts: tuple[str, ...]
+
+    @classmethod
+    def from_parts(cls, *parts: str):
+        return cls(tuple(parts))
+
+    def dot(self, part: str | Qname) -> Qname:
+        match part:
+            case str():
+                return Qname((*self.parts, part))
+            case Qname():
+                return Qname((*self.parts, *part.parts))
+
+    @override
+    def __str__(self) -> str:
+        return ".".join(self.parts)
 
 
 class Original(msgspec.Struct, frozen=True, kw_only=True):
@@ -58,7 +81,7 @@ class Flake(msgspec.Struct, frozen=True, kw_only=True):
     nodes: dict[str, Node]
 
 
-def get_qualified_inputs(flake: Flake) -> dict[str, str]:
+def get_qualified_inputs(flake: Flake) -> dict[Qname, str]:
     """maps qualified names to the final flat input"""
 
     def follow(at: str, targets: list[str]) -> str:
@@ -72,37 +95,40 @@ def get_qualified_inputs(flake: Flake) -> dict[str, str]:
                     at = follow(flake.root, ats)
         return at
 
-    def flatten(node: Node) -> dict[str, str]:
+    def flatten(node: Node) -> dict[Qname, str]:
+        flat: dict[Qname, str] = dict()
         if node.inputs is None:
-            return dict()
-        flat: dict[str, str] = dict()
+            return flat
         for name, targets in node.inputs.items():
+            qname = Qname.from_parts(name)
             match targets:
                 case str(target):
-                    flat[name] = target
+                    flat[qname] = target
                 case list():
-                    flat[name] = follow(flake.root, targets)
+                    flat[qname] = follow(flake.root, targets)
             flat.update(
                 {
-                    f"{name}.{subname}": target
-                    for (subname, target) in flatten(flake.nodes[name]).items()
+                    qname.dot(subqname): target
+                    # TODO how is flake.nodes[name] correct?
+                    for (subqname, target) in flatten(flake.nodes[name]).items()
                 }
             )
         return flat
 
+    root = Qname.from_parts("root")
     return {
-        f"root.{name}": target
-        for (name, target) in flatten(flake.nodes[flake.root]).items()
+        root.dot(qname): target
+        for (qname, target) in flatten(flake.nodes[flake.root]).items()
     }
 
 
-type Inverted = dict[Original, dict[Locked, set[str]]]
+type Inverted = dict[Original, dict[Locked, set[Qname]]]
 
 
 def get_inverted_mapping(flake: Flake) -> Inverted:
     """maps originals to differently locked qualified entries"""
     flat = get_qualified_inputs(flake)
-    inverted: dict[Original, dict[Locked, set[str]]] = dict()
+    inverted: dict[Original, dict[Locked, set[Qname]]] = dict()
     for name, target in flat.items():
         # TODO can original really be None?
         original = flake.nodes[target].original

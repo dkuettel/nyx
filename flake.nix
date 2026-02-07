@@ -1,5 +1,5 @@
 {
-  description = "nixtools";
+  description = "nyx";
 
   inputs = {
     nixpkgs.url = "github:dkuettel/nixpkgs/stable";
@@ -38,7 +38,7 @@
     flake-utils.lib.eachDefaultSystem (
       system:
       let
-        name = "nixtools";
+        name = "nyx";
 
         pkgs = import nixpkgs {
           inherit system;
@@ -132,7 +132,7 @@
         inherit (pkgs.callPackages pyproject-nix.build.util { }) mkApplication;
         app = mkApplication {
           venv = venv;
-          package = modules.nixtools;
+          package = modules.nyx;
         };
         # TODO this could help, but Im not sure its the best way to do it
         # wrappedApp = pkgs.writeScriptBin "TODO" ''

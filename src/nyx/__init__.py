@@ -51,7 +51,7 @@ class Locked(msgspec.Struct, frozen=True, kw_only=True):
 
     owner: str
     repo: str
-    rev: str
+    rev: str  # this is always a commit, never a branch or tag
 
     @override
     def __eq__(self, other: object) -> bool:
@@ -69,33 +69,42 @@ class Locked(msgspec.Struct, frozen=True, kw_only=True):
         return self.rev
 
 
+type InputName = str
+
+# a "flat name", indexing directly into the flake top level names
+type FlatName = str
+
+# a list of names that start at root (like a fully qualified name)
+type NodeSpec = tuple[str, ...]
+
+
 class Node(msgspec.Struct, frozen=True, kw_only=True):
     original: Original | None = None
     locked: Locked | None = None
-    inputs: None | dict[str, str | tuple[str, ...]] = None
+    inputs: None | dict[InputName, FlatName | NodeSpec] = None
 
 
 class Flake(msgspec.Struct, frozen=True, kw_only=True):
     version: Literal[7]
-    root: str
-    nodes: dict[str, Node]
+    root: FlatName
+    nodes: dict[FlatName, Node]
 
 
-def get_qualified_inputs(flake: Flake) -> dict[Qname, str]:
+def get_qualified_inputs(flake: Flake) -> dict[Qname, FlatName]:
     """maps qualified names to the final flat input"""
 
-    def follow(at: str, targets: tuple[str, ...]) -> str:
-        for target in targets:
+    def follow(at: str, spec: NodeSpec) -> str:
+        for part in spec:
             node = flake.nodes[at]
             assert node.inputs is not None
-            match node.inputs[target]:
+            match node.inputs[part]:
                 case str(at):
                     pass
                 case tuple(ats):
                     at = follow(flake.root, ats)
         return at
 
-    def flatten(node: Node) -> dict[Qname, str]:
+    def flatten(node: Node) -> dict[Qname, FlatName]:
         flat: dict[Qname, str] = dict()
         if node.inputs is None:
             return flat

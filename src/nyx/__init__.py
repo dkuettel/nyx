@@ -8,7 +8,7 @@ import msgspec
 import typer
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, order=True)
 class Qname:
     """fully qualified name"""
 
@@ -168,8 +168,27 @@ app = typer.Typer(
 )
 
 
-@app.command("invert")
-def app_invert(path: Path = Path("./flake.lock")):
+@app.command("tree")
+def app_tree(path: Path = Path("./flake.lock")):
+    """show all dependencies in a tree rooted at the flake's self"""
+    flake = msgspec.json.decode(path.read_text(), type=Flake)
+    qnames = get_qualified_inputs(flake)
+    for qname in sorted(qnames):
+        node = flake.nodes[qnames[qname]]
+        match node.original:
+            case None:
+                print(f"{qname} -> ...")
+            case Original() as o:
+                match node.locked:
+                    case None:
+                        print(f"{qname} -> {o.as_ref()} @...")
+                    case Locked() as l:
+                        print(f"{qname} -> {o.as_ref()} @{l.as_rev()}")
+
+
+@app.command("itree")
+def app_itree(path: Path = Path("./flake.lock")):
+    """show all dependencies inverted, ie, roots are originals"""
     flake = msgspec.json.decode(path.read_text(), type=Flake)
     forks = get_inverted_mapping(flake)
     print_forks(forks)
@@ -177,6 +196,7 @@ def app_invert(path: Path = Path("./flake.lock")):
 
 @app.command("lint")
 def app_lint(path: Path = Path("./flake.lock")):
+    """show an inverted tree including only ambiguous locks"""
     flake = msgspec.json.decode(path.read_text(), type=Flake)
     forks = get_inverted_mapping(flake)
     forks = get_forks(forks)

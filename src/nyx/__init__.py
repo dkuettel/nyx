@@ -8,11 +8,11 @@ import typer
 
 
 class Original(msgspec.Struct, frozen=True, kw_only=True):
-    owner: str
-    # TODO correct? and also, this could hide things that might be forks?
-    ref: str | None = None
-    repo: str
     type: Literal["github"]
+
+    repo: str
+    owner: str
+    ref: str | None = None  # this is the branch, tag, or commit
 
     def as_ref(self) -> str:
         if self.ref is None:
@@ -21,9 +21,11 @@ class Original(msgspec.Struct, frozen=True, kw_only=True):
             return f"github:{self.owner}/{self.repo}/{self.ref}"
 
 
-class Locked(msgspec.Struct, frozen=True):
+class Locked(msgspec.Struct, frozen=True, kw_only=True):
     narHash: str
+
     type: Literal["github"]
+
     owner: str
     repo: str
     rev: str
@@ -50,10 +52,10 @@ class Node(msgspec.Struct, frozen=True, kw_only=True):
     inputs: None | dict[str, str | list[str]] = None
 
 
-class Flake(msgspec.Struct, frozen=True):
-    version: int
-    nodes: dict[str, Node]
+class Flake(msgspec.Struct, frozen=True, kw_only=True):
+    version: Literal[7]
     root: str
+    nodes: dict[str, Node]
 
 
 def get_qualified_inputs(flake: Flake) -> dict[str, str]:
@@ -134,7 +136,6 @@ app = typer.Typer(
 @app.command("invert")
 def app_invert(path: Path = Path("./flake.lock")):
     flake = msgspec.json.decode(path.read_text(), type=Flake)
-    assert flake.version == 7, flake.version
     forks = get_inverted_mapping(flake)
     print_forks(forks)
 
@@ -142,7 +143,6 @@ def app_invert(path: Path = Path("./flake.lock")):
 @app.command("lint")
 def app_lint(path: Path = Path("./flake.lock")):
     flake = msgspec.json.decode(path.read_text(), type=Flake)
-    assert flake.version == 7, flake.version
     forks = get_inverted_mapping(flake)
     forks = get_forks(forks)
     print_forks(forks)

@@ -99,18 +99,18 @@ def get_qualified_inputs(flake: Flake) -> dict[Qname, str]:
         flat: dict[Qname, str] = dict()
         if node.inputs is None:
             return flat
-        for name, targets in node.inputs.items():
+        for name, target_spec in node.inputs.items():
             qname = Qname.from_parts(name)
-            match targets:
+            match target_spec:
                 case str(target):
-                    flat[qname] = target
+                    pass
                 case list():
-                    flat[qname] = follow(flake.root, targets)
+                    target = follow(flake.root, target_spec)
+            flat[qname] = target
             flat.update(
                 {
                     qname.dot(subqname): target
-                    # TODO how is flake.nodes[name] correct?
-                    for (subqname, target) in flatten(flake.nodes[name]).items()
+                    for (subqname, target) in flatten(flake.nodes[target]).items()
                 }
             )
         return flat

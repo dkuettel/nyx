@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Literal
+from typing import Literal, override
 
 import msgspec
 import typer
@@ -16,7 +16,7 @@ class Original(msgspec.Struct, frozen=True, kw_only=True):
 
     def as_ref(self) -> str:
         if self.ref is None:
-            return f"github:{self.owner}/{self.repo}"
+            return f"github:{self.owner}/{self.repo}/*"
         else:
             return f"github:{self.owner}/{self.repo}/{self.ref}"
 
@@ -27,6 +27,18 @@ class Locked(msgspec.Struct, frozen=True):
     owner: str
     repo: str
     rev: str
+
+    @override
+    def __eq__(self, other: object) -> bool:
+        match other:
+            case Locked():
+                return self.narHash == other.narHash
+            case _:
+                return False
+
+    @override
+    def __hash__(self) -> int:
+        return hash(self.narHash)
 
     def as_rev(self) -> str:
         return self.rev

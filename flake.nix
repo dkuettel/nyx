@@ -2,7 +2,7 @@
   description = "nyx";
 
   inputs = {
-    nixpkgs.url = "github:dkuettel/nixpkgs/stable";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-26.05";
     flake-utils.url = "github:numtide/flake-utils";
 
     # see https://pyproject-nix.github.io/
